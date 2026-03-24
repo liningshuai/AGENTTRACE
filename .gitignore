@@ -1,0 +1,31 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local environment files
+.env
+.env.local
+!.env.example
+
+# Local research artifacts
+胡杨林.pdf
+
+# Generated runs: keep only selected result JSON files in version control
+runs/*
+!runs/gaia_full/
+runs/gaia_full/*
+!runs/gaia_full/gaia_report.json
+!runs/paper_like/
+runs/paper_like/*
+!runs/paper_like/report.json
+!runs/paper_like/report_llm_50.json
+!runs/smoke/
+runs/smoke/*
+!runs/smoke/report.json
