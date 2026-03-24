@@ -333,6 +333,7 @@ def _evaluate_gaia_rankings(scored: Any, name: str) -> dict[str, Any]:
     hit1_root = hit3_root = hit5_root = 0
     mrr_any = 0.0
     mrr_root = 0.0
+    recall1 = 0.0
     recall3 = 0.0
     recall5 = 0.0
     evaluated = 0
@@ -347,6 +348,7 @@ def _evaluate_gaia_rankings(scored: Any, name: str) -> dict[str, Any]:
             hit3_any += int(first_positive_rank is not None and first_positive_rank <= 3)
             hit5_any += int(first_positive_rank is not None and first_positive_rank <= 5)
             mrr_any += 0.0 if first_positive_rank is None else 1.0 / first_positive_rank
+            recall1 += len(set(ranking[:1]) & positives) / len(positives)
             recall3 += len(set(ranking[:3]) & positives) / len(positives)
             recall5 += len(set(ranking[:5]) & positives) / len(positives)
 
@@ -368,6 +370,7 @@ def _evaluate_gaia_rankings(scored: Any, name: str) -> dict[str, Any]:
         "hit@3_any": hit3_any / max(1, evaluated),
         "hit@5_any": hit5_any / max(1, evaluated),
         "mrr_any": mrr_any / max(1, evaluated),
+        "recall@1": recall1 / max(1, evaluated),
         "recall@3": recall3 / max(1, evaluated),
         "recall@5": recall5 / max(1, evaluated),
         "hit@1_root_proxy": hit1_root / max(1, root_evaluated),

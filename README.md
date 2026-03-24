@@ -146,6 +146,7 @@ Because of that mismatch, the GAIA pipeline reports two kinds of metrics:
 
 - `*_any`: hit against **any** human-labeled bad span
 - `*_root_proxy`: hit against the **earliest** labeled bad span, used only as a rough root-cause proxy
+- `recall@k`: among all human-labeled bad spans in a trace, how many are covered by the model's top-`k` ranked outputs
 
 Important note:
 
@@ -380,6 +381,7 @@ From `runs/gaia_full/gaia_report.json`:
 
 Graph method:
 
+- `Recall@1 = 0.308`
 - `Hit@1_any = 0.596`
 - `Hit@3_any = 0.825`
 - `Hit@5_any = 0.904`
@@ -389,12 +391,13 @@ Graph method:
 
 Real LLM baseline:
 
-- `Hit@1_any = 0.175`
-- `Hit@3_any = 0.605`
-- `Hit@5_any = 0.772`
-- `MRR_any = 0.417`
-- `Hit@1_root_proxy = 0.053`
-- `MRR_root_proxy = 0.263`
+- `Recall@1 = 0.087`
+- `Hit@1_any = 0.219`
+- `Hit@3_any = 0.623`
+- `Hit@5_any = 0.798`
+- `MRR_any = 0.446`
+- `Hit@1_root_proxy = 0.079`
+- `MRR_root_proxy = 0.278`
 
 Interpretation:
 
