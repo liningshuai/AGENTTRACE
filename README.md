@@ -393,11 +393,11 @@ Real LLM baseline:
 
 - `Recall@1 = 0.087`
 - `Hit@1_any = 0.219`
-- `Hit@3_any = 0.623`
-- `Hit@5_any = 0.798`
-- `MRR_any = 0.446`
+- `Hit@3_any = 0.614`
+- `Hit@5_any = 0.781`
+- `MRR_any = 0.444`
 - `Hit@1_root_proxy = 0.079`
-- `MRR_root_proxy = 0.278`
+- `MRR_root_proxy = 0.281`
 
 Interpretation:
 
@@ -411,8 +411,10 @@ Typical outputs:
 
 - `runs/paper_like/report.json`
 - `runs/paper_like/report_llm_50.json`
+- `runs/paper_like/trace_comparison.json`
 - `runs/smoke/report.json`
 - `runs/gaia_full/gaia_report.json`
+- `runs/gaia_full/trace_comparison.json`
 
 The repository intentionally does **not** track large generated datasets, validation splits, or LLM cache files. Only the selected summary JSON outputs are kept under `runs/`.
 

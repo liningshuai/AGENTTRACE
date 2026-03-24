@@ -49,7 +49,7 @@
     "mrr_root_proxy": 0.38685966536340033,
     "avg_candidate_count": 18.145299145299145,
     "avg_positive_count": 3.3076923076923075,
-    "mean_runtime_ms": 0.5323769217237639
+    "mean_runtime_ms": 0.5358598288546643
   },
   "baselines": {
     "random": {
@@ -69,7 +69,7 @@
       "mrr_root_proxy": 0.28423676240025464,
       "avg_candidate_count": 18.145299145299145,
       "avg_positive_count": 3.3076923076923075,
-      "mean_runtime_ms": 0.002506836795080931
+      "mean_runtime_ms": 0.0025709403447934194
     },
     "first_action": {
       "name": "first_action",
@@ -88,7 +88,7 @@
       "mrr_root_proxy": 0.3140690428467654,
       "avg_candidate_count": 18.145299145299145,
       "avg_positive_count": 3.3076923076923075,
-      "mean_runtime_ms": 0.0003290593496754638
+      "mean_runtime_ms": 0.0003401705453920568
     },
     "last_action": {
       "name": "last_action",
@@ -107,7 +107,7 @@
       "mrr_root_proxy": 0.18075078728625216,
       "avg_candidate_count": 18.145299145299145,
       "avg_positive_count": 3.3076923076923075,
-      "mean_runtime_ms": 0.0004555555418706857
+      "mean_runtime_ms": 0.00047008606453991344
     }
   },
   "llm_method": {
@@ -115,18 +115,18 @@
     "evaluated_traces_any": 114,
     "evaluated_traces_root_proxy": 114,
     "hit@1_any": 0.21929824561403508,
-    "hit@3_any": 0.6228070175438597,
-    "hit@5_any": 0.7982456140350878,
-    "mrr_any": 0.44593920144012505,
+    "hit@3_any": 0.6140350877192983,
+    "hit@5_any": 0.7807017543859649,
+    "mrr_any": 0.4438664269112102,
     "recall@1": 0.08729114452798663,
-    "recall@3": 0.4009816207184629,
-    "recall@5": 0.6412593984962407,
+    "recall@3": 0.3897243107769423,
+    "recall@5": 0.634826649958229,
     "hit@1_root_proxy": 0.07894736842105263,
-    "hit@3_root_proxy": 0.32456140350877194,
-    "hit@5_root_proxy": 0.6052631578947368,
-    "mrr_root_proxy": 0.27830946275775437,
+    "hit@3_root_proxy": 0.3333333333333333,
+    "hit@5_root_proxy": 0.5964912280701754,
+    "mrr_root_proxy": 0.2812805478779623,
     "avg_candidate_count": 18.145299145299145,
     "avg_positive_count": 3.3076923076923075,
-    "mean_runtime_ms": 3046.802001710261
+    "mean_runtime_ms": 2962.0263017087173
   }
 }

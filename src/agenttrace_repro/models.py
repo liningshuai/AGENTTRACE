@@ -138,7 +138,7 @@ def load_scenarios(path: Path) -> list[Scenario]:
     return scenarios
 
 
-def save_json(path: Path, payload: dict[str, Any]) -> None:
+def save_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)

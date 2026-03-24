@@ -3,12 +3,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .evaluation import evaluate_agenttrace_breakdowns, evaluate_methods, learn_weights
+from .evaluation import build_agenttrace_trace_comparison, evaluate_agenttrace_breakdowns, evaluate_methods, learn_weights
 from .generator import ScenarioGenerator
 from .llm_baseline import LLMBaselineRunner, load_config_from_env
 from .models import load_scenarios, save_json, save_scenarios
 from .ranker import GroupWeights, default_weights
-from .trail_gaia import run_gaia_pipeline
+from .trail_gaia import build_gaia_trace_comparison, load_gaia_traces, run_gaia_pipeline
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -114,10 +114,14 @@ def _handle_evaluate(args: argparse.Namespace) -> int:
         "methods": method_results,
         "agenttrace_breakdowns": breakdowns,
     }
+    comparison = build_agenttrace_trace_comparison(scenarios, weights=weights, max_depth=args.max_depth)
     _print_report(report)
     if args.report is not None:
         save_json(args.report, report)
         print(f"Saved report to {args.report}")
+        comparison_path = args.report.with_name("trace_comparison.json")
+        save_json(comparison_path, comparison)
+        print(f"Saved trace comparison to {comparison_path}")
     return 0
 
 
@@ -152,19 +156,27 @@ def _handle_pipeline(args: argparse.Namespace) -> int:
         "methods": method_results,
         "agenttrace_breakdowns": breakdowns,
     }
+    comparison = build_agenttrace_trace_comparison(bundle.benchmark, weights=weights, max_depth=args.max_depth)
     save_json(report_path, report)
+    comparison_path = output_dir / "trace_comparison.json"
+    save_json(comparison_path, comparison)
     _print_report(report)
+    print(f"Saved trace comparison to {comparison_path}")
     print(f"Artifacts written under {output_dir}")
     return 0
 
 
 def _handle_gaia(args: argparse.Namespace) -> int:
+    traces = load_gaia_traces()
     report = run_gaia_pipeline(
         output_dir=args.output_dir,
         include_llm=args.include_llm,
         llm_cache=args.llm_cache,
         llm_timeout=args.llm_timeout,
+        traces=traces,
     )
+    comparison_path = args.output_dir / "trace_comparison.json"
+    save_json(comparison_path, build_gaia_trace_comparison(traces))
     dataset = report["dataset"]
     graph = report["graph_method"]
     print(
@@ -192,6 +204,7 @@ def _handle_gaia(args: argparse.Namespace) -> int:
             f"hit@1_root_proxy={llm['hit@1_root_proxy']:.3f}, "
             f"mean_runtime_ms={llm['mean_runtime_ms']:.2f}"
         )
+    print(f"Saved trace comparison to {comparison_path}")
     print(f"Artifacts written under {args.output_dir}")
     return 0
 

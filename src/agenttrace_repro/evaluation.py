@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable
 import random
 import time
+from typing import Any
 
 from .baselines import BaselineSuite
 from .llm_baseline import LLMBaselineRunner
@@ -43,6 +44,76 @@ def evaluate_agenttrace_breakdowns(
         "by_bug_type": _group_and_score(scenarios, ranker.rank, key=lambda scenario: scenario.ground_truth.bug_type),
         "by_bug_position": _group_and_score(scenarios, ranker.rank, key=lambda scenario: scenario.ground_truth.bug_position_bucket),
         "by_trace_length": _group_and_score(scenarios, ranker.rank, key=_trace_length_bucket),
+    }
+
+
+def build_agenttrace_trace_comparison(
+    scenarios: list[Scenario],
+    weights: GroupWeights | None = None,
+    max_depth: int = 10,
+) -> dict[str, Any]:
+    ranker = AgentTraceRanker(weights=weights, max_depth=max_depth)
+    traces: list[dict[str, Any]] = []
+
+    for scenario in scenarios:
+        result = ranker.rank(scenario)
+        ranking = result.ordered_nodes
+        truth = scenario.ground_truth.root_cause_node_id
+        error_node = scenario.ground_truth.error_node_id
+        truth_rank = ranking.index(truth) + 1 if truth in ranking else None
+        predicted_top1 = ranking[0] if ranking else None
+        top3 = ranking[:3]
+        top5 = ranking[:5]
+
+        traces.append(
+            {
+                "scenario_id": scenario.scenario_id,
+                "domain": scenario.domain,
+                "domain_group": scenario.domain_group,
+                "interaction_pattern": scenario.interaction_pattern,
+                "ground_truth": {
+                    "root_cause_node_id": truth,
+                    "error_node_id": error_node,
+                    "bug_type": scenario.ground_truth.bug_type,
+                    "bug_description": scenario.ground_truth.bug_description,
+                    "bug_position_bucket": scenario.ground_truth.bug_position_bucket,
+                },
+                "predicted": {
+                    "top1_node_id": predicted_top1,
+                    "top3_node_ids": top3,
+                    "top5_node_ids": top5,
+                    "top1_match_root": predicted_top1 == truth,
+                    "top3_match_root": truth in top3,
+                    "top5_match_root": truth in top5,
+                    "recall@1": float(predicted_top1 == truth),
+                    "recall@3": float(truth in top3),
+                    "recall@5": float(truth in top5),
+                    "ground_truth_rank": truth_rank,
+                },
+                "candidate_root_cause_node_ids": result.candidate_nodes,
+                "ranked_nodes": [
+                    {
+                        "rank": index,
+                        "node_id": node_id,
+                        "score": result.scores[node_id],
+                        "group_scores": result.group_scores[node_id],
+                        "is_candidate_ancestor": node_id in result.candidate_nodes,
+                        "is_ground_truth_root_cause": node_id == truth,
+                        "is_error_node": node_id == error_node,
+                        "step": _serialize_scenario_step(scenario, node_id),
+                    }
+                    for index, node_id in enumerate(ranking, start=1)
+                ],
+            }
+        )
+
+    return {
+        "dataset": "synthetic_agenttrace_reproduction",
+        "method": "agenttrace",
+        "trace_count": len(traces),
+        "weights": ranker.weights.as_dict(),
+        "max_depth": max_depth,
+        "traces": traces,
     }
 
 
@@ -123,3 +194,18 @@ def _trace_length_bucket(scenario: Scenario) -> str:
     if length <= 13:
         return "12-13"
     return "14-15"
+
+
+def _serialize_scenario_step(scenario: Scenario, step_id: int) -> dict[str, Any]:
+    step = scenario.steps[step_id - 1]
+    return {
+        "step_id": step.step_id,
+        "agent": step.agent,
+        "action_type": step.action_type,
+        "timestamp": step.timestamp,
+        "confidence": step.confidence,
+        "tags": step.tags,
+        "input_excerpt": step.input[:280],
+        "output_excerpt": step.output[:280],
+        "metadata": step.metadata,
+    }

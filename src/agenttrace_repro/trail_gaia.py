@@ -232,9 +232,15 @@ def span_text(span: GaiaSpan) -> str:
 
 
 def rank_gaia_trace(trace: GaiaTrace, weights: GaiaWeights = GaiaWeights()) -> list[str]:
+    scores = score_gaia_trace(trace, weights=weights)
+    ranked_spans = sorted(trace.candidate_spans, key=lambda span: scores[span.span_id], reverse=True)
+    return [span.span_id for span in ranked_spans]
+
+
+def score_gaia_trace(trace: GaiaTrace, weights: GaiaWeights = GaiaWeights()) -> dict[str, float]:
     candidates = trace.candidate_spans
     if not candidates:
-        return []
+        return {}
 
     total = len(candidates)
     max_depth = max(span.depth for span in candidates) or 1
@@ -269,8 +275,7 @@ def rank_gaia_trace(trace: GaiaTrace, weights: GaiaWeights = GaiaWeights()) -> l
             + weights.keywords * normalized["keywords"][span_id]
             + weights.text_len * normalized["text_len"][span_id]
         )
-    ranked_spans = sorted(candidates, key=lambda span: scores[span.span_id], reverse=True)
-    return [span.span_id for span in ranked_spans]
+    return scores
 
 
 def _normalize(values: dict[str, float]) -> dict[str, float]:
@@ -467,8 +472,14 @@ def summarize_gaia_dataset(traces: list[GaiaTrace]) -> dict[str, Any]:
     }
 
 
-def run_gaia_pipeline(output_dir: Path, include_llm: bool = False, llm_cache: Path | None = None, llm_timeout: float = 60.0) -> dict[str, Any]:
-    traces = load_gaia_traces()
+def run_gaia_pipeline(
+    output_dir: Path,
+    include_llm: bool = False,
+    llm_cache: Path | None = None,
+    llm_timeout: float = 60.0,
+    traces: list[GaiaTrace] | None = None,
+) -> dict[str, Any]:
+    traces = traces or load_gaia_traces()
     dataset_summary = summarize_gaia_dataset(traces)
     graph_metrics = evaluate_gaia_graph(traces)
     baseline_metrics = evaluate_gaia_baselines(traces)
@@ -484,3 +495,91 @@ def run_gaia_pipeline(output_dir: Path, include_llm: bool = False, llm_cache: Pa
     output_dir.mkdir(parents=True, exist_ok=True)
     save_json(output_dir / "gaia_report.json", report)
     return report
+
+
+def build_gaia_trace_comparison(traces: list[GaiaTrace], weights: GaiaWeights = GaiaWeights()) -> dict[str, Any]:
+    comparison_rows: list[dict[str, Any]] = []
+    for trace in traces:
+        scores = score_gaia_trace(trace, weights=weights)
+        ranking = rank_gaia_trace(trace, weights=weights)
+        positives = trace.positive_span_ids
+        root_proxy = trace.root_proxy_span_id
+        top1 = ranking[:1]
+        top3 = ranking[:3]
+        top5 = ranking[:5]
+        by_id = {span.span_id: span for span in trace.candidate_spans}
+
+        comparison_rows.append(
+            {
+                "trace_id": trace.trace_id,
+                "notes": {
+                    "has_official_human_root_cause": False,
+                    "root_proxy_is_approximation": True,
+                },
+                "human_labels": {
+                    "positive_span_ids": sorted(positives),
+                    "positive_count": len(positives),
+                    "root_proxy_span_id": root_proxy,
+                    "root_proxy_span": _serialize_gaia_span(by_id.get(root_proxy), score=scores.get(root_proxy)) if root_proxy else None,
+                },
+                "predicted": {
+                    "top1_span_id": top1[0] if top1 else None,
+                    "top3_span_ids": top3,
+                    "top5_span_ids": top5,
+                    "top1_hit_any": bool(set(top1) & positives),
+                    "top3_hit_any": bool(set(top3) & positives),
+                    "top5_hit_any": bool(set(top5) & positives),
+                    "top1_hit_root_proxy": bool(root_proxy is not None and root_proxy in top1),
+                    "top3_hit_root_proxy": bool(root_proxy is not None and root_proxy in top3),
+                    "top5_hit_root_proxy": bool(root_proxy is not None and root_proxy in top5),
+                    "recall@1": len(set(top1) & positives) / len(positives) if positives else 0.0,
+                    "recall@3": len(set(top3) & positives) / len(positives) if positives else 0.0,
+                    "recall@5": len(set(top5) & positives) / len(positives) if positives else 0.0,
+                },
+                "positive_spans": [
+                    _serialize_gaia_span(by_id[span_id], score=scores.get(span_id))
+                    for span_id in sorted(positives)
+                    if span_id in by_id
+                ],
+                "ranked_spans": [
+                    {
+                        "rank": index,
+                        **_serialize_gaia_span(by_id[span_id], score=scores.get(span_id)),
+                        "is_human_labeled_positive": span_id in positives,
+                        "is_root_proxy": span_id == root_proxy,
+                    }
+                    for index, span_id in enumerate(ranking, start=1)
+                    if span_id in by_id
+                ],
+            }
+        )
+
+    return {
+        "dataset": "PatronusAI/TRAIL:gaia",
+        "method": "agenttrace_gaia",
+        "trace_count": len(comparison_rows),
+        "weights": weights.as_dict(),
+        "notes": {
+            "positive_span_ids_are_human_labeled_bad_locations": True,
+            "root_proxy_span_id_is_the_earliest_labeled_positive_among_candidate_action_spans": True,
+            "gaia_does_not_provide_a_single_official_root_cause_label": True,
+        },
+        "traces": comparison_rows,
+    }
+
+
+def _serialize_gaia_span(span: GaiaSpan | None, score: float | None = None) -> dict[str, Any] | None:
+    if span is None:
+        return None
+    return {
+        "span_id": span.span_id,
+        "step_number": span.step_number,
+        "span_name": span.span_name,
+        "status_code": span.status_code,
+        "span_kind": span.span_kind,
+        "depth": span.depth,
+        "child_count": span.child_count,
+        "timestamp": span.timestamp,
+        "score": score,
+        "text_excerpt": span_text(span)[:320],
+    }

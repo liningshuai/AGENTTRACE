@@ -22,10 +22,12 @@ runs/*
 !runs/gaia_full/
 runs/gaia_full/*
 !runs/gaia_full/gaia_report.json
+!runs/gaia_full/trace_comparison.json
 !runs/paper_like/
 runs/paper_like/*
 !runs/paper_like/report.json
 !runs/paper_like/report_llm_50.json
+!runs/paper_like/trace_comparison.json
 !runs/smoke/
 runs/smoke/*
 !runs/smoke/report.json
